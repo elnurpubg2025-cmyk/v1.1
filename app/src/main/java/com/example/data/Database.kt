@@ -44,6 +44,12 @@ interface KivuDao {
     @Query("DELETE FROM channel_cache")
     suspend fun clearAllChannels()
 
+    @Delete
+    suspend fun deleteChannels(channels: List<ChannelEntity>)
+
+    @Query("DELETE FROM channel_cache WHERE url = :url")
+    suspend fun deleteChannelByUrl(url: String)
+
     @Query("SELECT * FROM favorites")
     fun getAllFavorites(): Flow<List<FavoriteEntity>>
 

@@ -27,18 +27,6 @@ import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
 import kotlinx.coroutines.delay
 
-@UnstableApi
-class DynamicHttpDataSourceFactory(private val defaultUserAgent: String) : androidx.media3.datasource.DataSource.Factory {
-    var currentUserAgent: String? = null
-    override fun createDataSource(): androidx.media3.datasource.DataSource {
-        val uAgent = if (!currentUserAgent.isNullOrEmpty()) currentUserAgent else defaultUserAgent
-        return DefaultHttpDataSource.Factory()
-            .setUserAgent(uAgent)
-            .setAllowCrossProtocolRedirects(true)
-            .createDataSource()
-    }
-}
-
 @OptIn(UnstableApi::class)
 @Composable
 fun KivuPlayer(
@@ -50,119 +38,11 @@ fun KivuPlayer(
     onStateFailed: () -> Unit,
     modifier: Modifier = Modifier,
     retryTrigger: Int = 0,
-    channelUserAgent: String? = null
+    channelUserAgent: String? = null,
+    viewModel: KivuViewModel
 ) {
     val context = LocalContext.current
-    val dynamicDataSourceFactory = remember {
-        DynamicHttpDataSourceFactory("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36")
-    }
-    var exoPlayer by remember { mutableStateOf<ExoPlayer?>(null) }
-
-    // Re-create or adjust player when adaptive condition or context shifts
-    LaunchedEffect(isAdaptivePerformance) {
-        // Build LoadControl to optimize buffering depending on hardware performance
-        val loadControlBuilder = DefaultLoadControl.Builder()
-        if (isAdaptivePerformance) {
-            // Low RAM / Old box optimization: lower buffer allocation to conserve memory and start extremely fast
-            loadControlBuilder.setBufferDurationsMs(
-                10_000, // minBufferMs
-                20_000, // maxBufferMs
-                1_500,  // bufferForPlaybackMs
-                2_500   // bufferForPlaybackAfterRebufferMs
-            )
-        } else {
-            // High-end buffers: aggressive preloading similar to YouTube to avoid freezing on micro-drops
-            loadControlBuilder.setBufferDurationsMs(
-                20_000, // minBufferMs
-                45_000, // maxBufferMs
-                2_500,  // bufferForPlaybackMs
-                5_000   // bufferForPlaybackAfterRebufferMs
-            )
-        }
-
-        val mediaSourceFactory = DefaultMediaSourceFactory(context)
-            .setDataSourceFactory(dynamicDataSourceFactory)
-
-        val player = ExoPlayer.Builder(context)
-            .setMediaSourceFactory(mediaSourceFactory)
-            .setLoadControl(loadControlBuilder.build())
-            .build()
-            .apply {
-                playWhenReady = true
-                repeatMode = Player.REPEAT_MODE_OFF
-            }
-
-        player.addListener(object : Player.Listener {
-            override fun onPlaybackStateChanged(state: Int) {
-                when (state) {
-                    Player.STATE_BUFFERING -> {
-                        onStateBuffering()
-                    }
-                    Player.STATE_READY -> {
-                        onStateStarted()
-                    }
-                    Player.STATE_ENDED -> {
-                        // Restart or notify
-                    }
-                    Player.STATE_IDLE -> {
-                        // Idle
-                    }
-                }
-            }
-
-            override fun onPlayerError(error: PlaybackException) {
-                Log.e("KivuPlayer", "ExoPlayer exception encountered", error)
-                onStateFailed()
-            }
-        })
-
-        exoPlayer?.release()
-        exoPlayer = player
-    }
-
-    // Load stream URL when it shifts or when retry is triggered
-    LaunchedEffect(channelUrl, exoPlayer, retryTrigger) {
-        val player = exoPlayer ?: return@LaunchedEffect
-        if (!channelUrl.isNullOrEmpty()) {
-            try {
-                // Dynamically update User-Agent prior to loading the media item
-                dynamicDataSourceFactory.currentUserAgent = channelUserAgent
-                
-                player.stop()
-                player.clearMediaItems()
-                
-                val parsedUri = Uri.parse(channelUrl)
-                val mediaItemBuilder = MediaItem.Builder().setUri(parsedUri)
-                
-                // Explicitly tell ExoPlayer this is an HLS (.m3u8) stream if the URL suggests it,
-                // which bypasses failures when parameters (e.g. ?app=web) hide the file extension.
-                if (channelUrl.contains(".m3u8", ignoreCase = true) || channelUrl.contains("m3u8", ignoreCase = true)) {
-                    mediaItemBuilder.setMimeType(androidx.media3.common.MimeTypes.APPLICATION_M3U8)
-                }
-                
-                player.setMediaItem(mediaItemBuilder.build())
-                player.prepare()
-                player.play()
-            } catch (e: Exception) {
-                Log.e("KivuPlayer", "Error loading media uri: $channelUrl", e)
-                onStateFailed()
-            }
-        } else {
-            player.stop()
-            player.clearMediaItems()
-        }
-    }
-
-    // Release player on disposal
-    DisposableEffect(Unit) {
-        onDispose {
-            exoPlayer?.let {
-                it.stop()
-                it.release()
-            }
-            exoPlayer = null
-        }
-    }
+    val player = remember(viewModel) { viewModel.getOrCreatePlayer() }
 
     Box(
         modifier = modifier.background(Color.Black),
@@ -193,7 +73,9 @@ fun KivuPlayer(
                     }
                 },
                 update = { view ->
-                    view.player = exoPlayer
+                    if (view.player != player) {
+                        view.player = player
+                    }
                 },
                 modifier = Modifier.fillMaxSize()
             )

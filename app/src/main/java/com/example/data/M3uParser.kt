@@ -7,6 +7,13 @@ import java.io.BufferedReader
 import java.io.StringReader
 import java.util.concurrent.TimeUnit
 
+data class M3uFetchResult(
+    val isModified: Boolean,
+    val channels: List<ChannelEntity>,
+    val etag: String?,
+    val lastModified: String?
+)
+
 object M3uParser {
     private const val TAG = "M3uParser"
 
@@ -16,26 +23,57 @@ object M3uParser {
         .build()
 
     fun fetchAndParse(url: String): List<ChannelEntity> {
-        val channels = mutableListOf<ChannelEntity>()
+        val result = fetchAndParseWithCache(url, null, null)
+        return result.channels
+    }
+
+    fun fetchAndParseWithCache(url: String, etag: String?, lastModified: String?): M3uFetchResult {
         try {
-            val request = Request.Builder()
+            val requestBuilder = Request.Builder()
                 .url(url)
                 .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) IPTVStreamPlayer/1.0")
-                .build()
             
+            if (!etag.isNullOrEmpty()) {
+                requestBuilder.header("If-None-Match", etag)
+            }
+            if (!lastModified.isNullOrEmpty()) {
+                requestBuilder.header("If-Modified-Since", lastModified)
+            }
+            
+            val request = requestBuilder.build()
             client.newCall(request).execute().use { response ->
-                if (!response.isSuccessful) {
-                    Log.e(TAG, "Unsuccessful response fetching M3U: ${response.code}")
-                    return emptyList()
+                if (response.code == 304) {
+                    Log.d(TAG, "Server returned 304 Not Modified. Cache is fresh.")
+                    return M3uFetchResult(
+                        isModified = false,
+                        channels = emptyList(),
+                        etag = etag,
+                        lastModified = lastModified
+                    )
                 }
                 
-                val bodyString = response.body?.string() ?: return emptyList()
-                return parse(bodyString)
+                if (!response.isSuccessful) {
+                    Log.e(TAG, "Unsuccessful response fetching M3U: ${response.code}")
+                    return M3uFetchResult(false, emptyList(), etag, lastModified)
+                }
+                
+                val bodyString = response.body?.string() ?: return M3uFetchResult(false, emptyList(), etag, lastModified)
+                val newEtag = response.header("ETag")
+                val newLastModified = response.header("Last-Modified")
+                val parsed = parse(bodyString)
+                
+                Log.d(TAG, "Fetched M3U successfully. Parsed ${parsed.size} channels. ETag: $newEtag, Last-Modified: $newLastModified")
+                return M3uFetchResult(
+                    isModified = true,
+                    channels = parsed,
+                    etag = newEtag,
+                    lastModified = newLastModified
+                )
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Exception fetching and parsing M3U list", e)
+            Log.e(TAG, "Exception fetching and parsing M3U list with cache", e)
         }
-        return channels
+        return M3uFetchResult(false, emptyList(), etag, lastModified)
     }
 
     fun parse(m3uContent: String): List<ChannelEntity> {

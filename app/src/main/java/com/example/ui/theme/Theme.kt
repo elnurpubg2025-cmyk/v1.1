@@ -2,8 +2,22 @@ package com.example.ui.theme
 
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
+
+val PremiumWhiteScheme = lightColorScheme(
+    primary = Color(0xFF1A73E8),       // Pristine Active Blue
+    secondary = Color(0xFF3C4043),     // Slate Gray
+    background = Color(0xFFF8F9FA),    // Premium Ultra-White background
+    surface = Color(0xFFFFFFFF),       // Solid pure white containers
+    onBackground = Color(0xFF202124),  // Charcoal Body Text
+    onSurface = Color(0xFF3C4043),     // Charcoal Subtitles
+    primaryContainer = Color(0xFFE8F0FE), // Airy Blue Hue
+    onPrimaryContainer = Color(0xFF1A73E8),
+    surfaceVariant = Color(0xFFF1F3F4),
+    onSurfaceVariant = Color(0xFF5F6368)
+)
 
 val CosmicMidnightScheme = darkColorScheme(
     primary = ComicPrimary,
@@ -79,9 +93,10 @@ fun KivuTheme(
     val colorScheme = when (themeName) {
         "Ocean Breeze" -> OceanBreezeScheme
         "Emerald Shine" -> EmeraldShineScheme
-        "Amoled Slate" -> AmoledSlateScheme
+        "Amoled Slate", "Deep Dark Theme", "Deep Dark" -> AmoledSlateScheme
         "Cosmic Midnight" -> CosmicMidnightScheme
         "Elegant Dark" -> ElegantDarkScheme
+        "Premium White Theme", "Premium White" -> PremiumWhiteScheme
         else -> ElegantDarkScheme
     }
 
