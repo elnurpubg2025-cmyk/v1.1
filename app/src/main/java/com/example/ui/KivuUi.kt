@@ -138,7 +138,8 @@ fun PipPlayerOnlyScreen(viewModel: KivuViewModel) {
             onStateBuffering = { viewModel.onPlaybackBuffering() },
             onStateFailed = { viewModel.onPlaybackFailed() },
             modifier = Modifier.fillMaxSize(),
-            retryTrigger = playbackRetryTrigger
+            retryTrigger = playbackRetryTrigger,
+            channelUserAgent = currentChannel?.userAgent
         )
 
         // Overlay small control labels for PiP user context
@@ -248,7 +249,8 @@ fun PhoneView(viewModel: KivuViewModel) {
                 onStateBuffering = { viewModel.onPlaybackBuffering() },
                 onStateFailed = { viewModel.onPlaybackFailed() },
                 modifier = Modifier.fillMaxSize(),
-                retryTrigger = playbackRetryTrigger
+                retryTrigger = playbackRetryTrigger,
+                channelUserAgent = currentChannel?.userAgent
             )
 
             // Custom Player Overlays
@@ -447,7 +449,8 @@ fun TvView(viewModel: KivuViewModel) {
                     onStateBuffering = { viewModel.onPlaybackBuffering() },
                     onStateFailed = { viewModel.onPlaybackFailed() },
                     modifier = Modifier.fillMaxSize(),
-                    retryTrigger = playbackRetryTrigger
+                    retryTrigger = playbackRetryTrigger,
+                    channelUserAgent = currentChannel?.userAgent
                 )
 
                 PlayerControlsOverlay(
@@ -578,7 +581,8 @@ fun TvView(viewModel: KivuViewModel) {
                             onStateBuffering = { viewModel.onPlaybackBuffering() },
                             onStateFailed = { viewModel.onPlaybackFailed() },
                             modifier = Modifier.fillMaxSize(),
-                            retryTrigger = playbackRetryTrigger
+                            retryTrigger = playbackRetryTrigger,
+                            channelUserAgent = currentChannel?.userAgent
                         )
 
                         PlayerControlsOverlay(
@@ -679,7 +683,8 @@ fun TabletView(viewModel: KivuViewModel) {
                 onStateBuffering = { viewModel.onPlaybackBuffering() },
                 onStateFailed = { viewModel.onPlaybackFailed() },
                 modifier = Modifier.fillMaxSize(),
-                retryTrigger = playbackRetryTrigger
+                retryTrigger = playbackRetryTrigger,
+                channelUserAgent = currentChannel?.userAgent
             )
 
             PlayerControlsOverlay(
@@ -764,23 +769,24 @@ fun TabletView(viewModel: KivuViewModel) {
                 verticalArrangement = Arrangement.SpaceBetween
             ) {
                 Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f)
-                        .clip(RoundedCornerShape(16.dp))
-                ) {
-                    KivuPlayer(
-                        channelUrl = currentChannel?.url,
-                        playbackState = playbackState,
-                        isAdaptivePerformance = isAdaptivePerformance,
-                        onStateStarted = { viewModel.onPlaybackStarted() },
-                        onStateBuffering = { viewModel.onPlaybackBuffering() },
-                        onStateFailed = { viewModel.onPlaybackFailed() },
-                        modifier = Modifier.fillMaxSize(),
-                        retryTrigger = playbackRetryTrigger
-                    )
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .clip(RoundedCornerShape(16.dp))
+            ) {
+                KivuPlayer(
+                    channelUrl = currentChannel?.url,
+                    playbackState = playbackState,
+                    isAdaptivePerformance = isAdaptivePerformance,
+                    onStateStarted = { viewModel.onPlaybackStarted() },
+                    onStateBuffering = { viewModel.onPlaybackBuffering() },
+                    onStateFailed = { viewModel.onPlaybackFailed() },
+                    modifier = Modifier.fillMaxSize(),
+                    retryTrigger = playbackRetryTrigger,
+                    channelUserAgent = currentChannel?.userAgent
+                )
 
-                    PlayerControlsOverlay(
+                PlayerControlsOverlay(
                         channel = currentChannel,
                         playbackState = playbackState,
                         isFullscreen = false,
@@ -922,7 +928,8 @@ fun WatchView(viewModel: KivuViewModel) {
                         onStateBuffering = { viewModel.onPlaybackBuffering() },
                         onStateFailed = { viewModel.onPlaybackFailed() },
                         modifier = Modifier.fillMaxSize(),
-                        retryTrigger = playbackRetryTrigger
+                        retryTrigger = playbackRetryTrigger,
+                        channelUserAgent = currentChannel?.userAgent
                     )
 
                     if (playbackState == PlaybackState.BUFFERING) {
@@ -1288,6 +1295,13 @@ fun SearchAndFilterBar(
                     name = strings.allCategories,
                     isSelected = selectedCategory.isEmpty(),
                     onClick = { onCategorySelected("") }
+                )
+            }
+            item {
+                CategoryPill(
+                    name = strings.favorites,
+                    isSelected = selectedCategory == "__favorites__",
+                    onClick = { onCategorySelected("__favorites__") }
                 )
             }
             items(categories) { category ->

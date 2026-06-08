@@ -271,12 +271,25 @@ class KivuViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun getFilteredChannels(): List<ChannelEntity> {
-        var baseList = channels.value
-        
-        // Filter by category
         val category = _selectedCategory.value
-        if (category.isNotEmpty()) {
-            baseList = baseList.filter { it.groupTitle.equals(category, ignoreCase = true) }
+        var baseList = if (category == "__favorites__") {
+            favorites.value.map { fav ->
+                ChannelEntity(
+                    url = fav.url,
+                    name = fav.name,
+                    logo = fav.logo,
+                    groupTitle = fav.groupTitle,
+                    userAgent = fav.userAgent,
+                    tvgId = fav.tvgId,
+                    tvgName = fav.tvgName
+                )
+            }
+        } else {
+            var list = channels.value
+            if (category.isNotEmpty()) {
+                list = list.filter { it.groupTitle.equals(category, ignoreCase = true) }
+            }
+            list
         }
 
         // Filter by search query

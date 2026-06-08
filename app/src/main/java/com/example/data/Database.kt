@@ -10,7 +10,10 @@ data class ChannelEntity(
     val name: String,
     val logo: String?,
     val groupTitle: String,
-    val currentProgram: String? = null
+    val currentProgram: String? = null,
+    val userAgent: String? = null,
+    val tvgId: String? = null,
+    val tvgName: String? = null
 )
 
 @Entity(tableName = "favorites")
@@ -18,7 +21,10 @@ data class FavoriteEntity(
     @PrimaryKey val url: String,
     val name: String,
     val logo: String?,
-    val groupTitle: String
+    val groupTitle: String,
+    val userAgent: String? = null,
+    val tvgId: String? = null,
+    val tvgName: String? = null
 )
 
 @Entity(tableName = "settings")

@@ -48,6 +48,9 @@ object M3uParser {
         var logo = ""
         var groupTitle = "General"
         var currentProgram: String? = null
+        var userAgent: String? = null
+        var tvgId: String? = null
+        var tvgName: String? = null
         
         while (line != null) {
             val trimmed = line.trim()
@@ -57,6 +60,9 @@ object M3uParser {
                 logo = ""
                 groupTitle = "General"
                 currentProgram = null
+                userAgent = null
+                tvgId = null
+                tvgName = null
                 
                 // Parse group-title="..."
                 val groupMatcher = "group-title=\"([^\"]+)\"".toRegex().find(trimmed)
@@ -70,8 +76,17 @@ object M3uParser {
                     logo = logoMatcher.groupValues[1]
                 }
                 
-                // Parse tvg-name="..." if present or other attributes
+                // Parse tvg-id="..."
+                val idMatcher = "tvg-id=\"([^\"]+)\"".toRegex().find(trimmed)
+                if (idMatcher != null) {
+                    tvgId = idMatcher.groupValues[1]
+                }
+                
+                // Parse tvg-name="..."
                 val tvgNameMatcher = "tvg-name=\"([^\"]+)\"".toRegex().find(trimmed)
+                if (tvgNameMatcher != null) {
+                    tvgName = tvgNameMatcher.groupValues[1]
+                }
                 
                 // Find comma separating attributes from display name
                 val lastCommaIndex = trimmed.lastIndexOf(',')
@@ -83,10 +98,13 @@ object M3uParser {
                     name = tvgNameMatcher.groupValues[1]
                 }
                 
-                // See if we can parse some program info or dummy data
-                // Some lines have tvg-id or description
+                // Parse program info or dummy data
                 if (trimmed.contains("current-program=")) {
                     currentProgram = "current-program=\"([^\"]+)\"".toRegex().find(trimmed)?.groupValues?.get(1)
+                }
+            } else if (trimmed.startsWith("#EXTVLCOPT:")) {
+                if (trimmed.contains("http-user-agent=")) {
+                    userAgent = trimmed.substringAfter("http-user-agent=").trim()
                 }
             } else if (trimmed.startsWith("http") || trimmed.startsWith("https")) {
                 // This is a stream URL line
@@ -101,7 +119,10 @@ object M3uParser {
                         name = name,
                         logo = if (logo.isNotEmpty()) logo else null,
                         groupTitle = groupTitle,
-                        currentProgram = currentProgram
+                        currentProgram = currentProgram,
+                        userAgent = userAgent,
+                        tvgId = tvgId,
+                        tvgName = tvgName
                     )
                 )
                 
@@ -110,6 +131,9 @@ object M3uParser {
                 logo = ""
                 groupTitle = "General"
                 currentProgram = null
+                userAgent = null
+                tvgId = null
+                tvgName = null
             }
             line = reader.readLine()
         }

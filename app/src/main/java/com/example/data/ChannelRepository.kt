@@ -40,7 +40,10 @@ class ChannelRepository(private val dao: KivuDao) {
                     url = channel.url,
                     name = channel.name,
                     logo = channel.logo,
-                    groupTitle = channel.groupTitle
+                    groupTitle = channel.groupTitle,
+                    userAgent = channel.userAgent,
+                    tvgId = channel.tvgId,
+                    tvgName = channel.tvgName
                 )
             )
         }

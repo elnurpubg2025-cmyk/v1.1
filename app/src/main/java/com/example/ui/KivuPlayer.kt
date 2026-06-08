@@ -27,6 +27,18 @@ import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
 import kotlinx.coroutines.delay
 
+@UnstableApi
+class DynamicHttpDataSourceFactory(private val defaultUserAgent: String) : androidx.media3.datasource.DataSource.Factory {
+    var currentUserAgent: String? = null
+    override fun createDataSource(): androidx.media3.datasource.DataSource {
+        val uAgent = if (!currentUserAgent.isNullOrEmpty()) currentUserAgent else defaultUserAgent
+        return DefaultHttpDataSource.Factory()
+            .setUserAgent(uAgent)
+            .setAllowCrossProtocolRedirects(true)
+            .createDataSource()
+    }
+}
+
 @OptIn(UnstableApi::class)
 @Composable
 fun KivuPlayer(
@@ -37,9 +49,13 @@ fun KivuPlayer(
     onStateBuffering: () -> Unit,
     onStateFailed: () -> Unit,
     modifier: Modifier = Modifier,
-    retryTrigger: Int = 0
+    retryTrigger: Int = 0,
+    channelUserAgent: String? = null
 ) {
     val context = LocalContext.current
+    val dynamicDataSourceFactory = remember {
+        DynamicHttpDataSourceFactory("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36")
+    }
     var exoPlayer by remember { mutableStateOf<ExoPlayer?>(null) }
 
     // Re-create or adjust player when adaptive condition or context shifts
@@ -64,13 +80,8 @@ fun KivuPlayer(
             )
         }
 
-        // Build a robust HTTP Data Source Factory to avoid stream failures due to user-agent restriction and redirect errors
-        val httpDataSourceFactory = DefaultHttpDataSource.Factory()
-            .setUserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36")
-            .setAllowCrossProtocolRedirects(true)
-        
         val mediaSourceFactory = DefaultMediaSourceFactory(context)
-            .setDataSourceFactory(httpDataSourceFactory)
+            .setDataSourceFactory(dynamicDataSourceFactory)
 
         val player = ExoPlayer.Builder(context)
             .setMediaSourceFactory(mediaSourceFactory)
@@ -114,6 +125,9 @@ fun KivuPlayer(
         val player = exoPlayer ?: return@LaunchedEffect
         if (!channelUrl.isNullOrEmpty()) {
             try {
+                // Dynamically update User-Agent prior to loading the media item
+                dynamicDataSourceFactory.currentUserAgent = channelUserAgent
+                
                 player.stop()
                 player.clearMediaItems()
                 
