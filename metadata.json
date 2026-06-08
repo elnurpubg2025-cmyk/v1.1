@@ -1,0 +1,6 @@
+{
+  "name": "Kivu Tv",
+  "description": "Kivu Tv is a unique IPTV live TV streaming application created by Kivu App to give people a smooth way to watch live TV without annoying ads.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
