@@ -1,4 +1,4 @@
-name: Build APK
+name: Build KivuApp APK
 
 on:
   workflow_dispatch:
@@ -12,25 +12,48 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Repository
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Java 17
+      - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: 17
+          java-version: "17"
           cache: gradle
 
-      - name: Make Gradle Executable
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Gradle 9.3.1
         run: |
-          if [ -f "./gradlew" ]; then
-            chmod +x ./gradlew
+          curl -fsSL -o /tmp/gradle.zip https://services.gradle.org/distributions/gradle-9.3.1-bin.zip
+          sudo unzip -q /tmp/gradle.zip -d /opt
+          echo "/opt/gradle-9.3.1/bin" >> "$GITHUB_PATH"
+          gradle -v
+
+      - name: Restore debug keystore
+        run: |
+          if [ -f "debug.keystore.base64" ]; then
+            base64 -d debug.keystore.base64 > debug.keystore
           fi
+
+          if [ ! -f "debug.keystore" ]; then
+            echo "debug.keystore is missing. The repo expects it at root for debugConfig signing." >&2
+            exit 1
+          fi
+
+      - name: Accept Android licenses
+        run: yes | sdkmanager --licenses >/dev/null
+
+      - name: Install required SDK packages
+        run: |
+          sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0"
 
       - name: Build Debug APK
         run: |
           if [ -f "./gradlew" ]; then
+            chmod +x ./gradlew
             ./gradlew assembleDebug --stacktrace --no-daemon
           else
             gradle assembleDebug --stacktrace --no-daemon
@@ -39,8 +62,6 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: APK
-          path: |
-            app/build/outputs/apk/debug/*.apk
-            app/build/outputs/apk/release/*.apk
+          name: KivuApp-debug-apk
+          path: app/build/outputs/apk/debug/*.apk
           retention-days: 7
