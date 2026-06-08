@@ -31,13 +31,6 @@ jobs:
             base64 -d debug.keystore.base64 > debug.keystore
           fi
 
-      - name: Verify Files
-        run: |
-          echo "=== ROOT FILES ==="
-          ls -la
-          echo "=== APP FILES ==="
-          ls -la app || true
-
       - name: Build APK
         run: |
           if [ -f "./gradlew" ]; then
@@ -51,7 +44,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: KivuTv-Debug-APK
-          path: |
-            app/build/outputs/apk/debug/*.apk
+          path: app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
-            retention-days: 7
+          retention-days: 7
